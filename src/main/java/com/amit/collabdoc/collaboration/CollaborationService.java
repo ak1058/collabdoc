@@ -1,6 +1,7 @@
 package com.amit.collabdoc.collaboration;
 
 import com.amit.collabdoc.document.DocumentService;
+import com.amit.collabdoc.dto.DocumentResponse;
 import com.amit.collabdoc.exception.ResourceNotFoundException;
 import com.amit.collabdoc.model.Document;
 import org.slf4j.Logger;
@@ -54,10 +55,14 @@ public class CollaborationService {
         if (content == null) {
             logger.info("Cache miss for doc {}. Fetching from DB.", documentId);
             try {
-                Document doc = documentService.getDocumentById(documentId, username);
+                // --- THIS IS THE FIX ---
+                // We now get a DTO from the service, not an Entity
+                DocumentResponse docResponse = documentService.getDocumentById(documentId, username);
 
                 // The "content" in Postgres is now a JSON string "{\"ops\":...}"
-                String contentString = doc.getContent();
+                // We get it from the DTO
+                String contentString = docResponse.getContent();
+                // ---------------------
 
                 // We must parse the JSON string from the DB into an Object (Map)
                 // so the client *always* receives a JSON object, never a string.

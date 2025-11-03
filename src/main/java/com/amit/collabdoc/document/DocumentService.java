@@ -103,23 +103,29 @@ public class DocumentService {
      * This is the method our CollaborationService and Controller will use.
      */
     @Transactional(readOnly = true)
-    public Document getDocumentById(Long documentId, String username) {
+    public DocumentResponse getDocumentById(Long documentId, String username) {
         User user = getUserByUsername(username);
         Document document = getDocumentById(documentId); // Uses private helper
 
-        // Check if user is owner OR has any permission (VIEWER or EDITOR)
+        // Check if user is owner OR has any permission (READER or EDITOR)
+        boolean hasAccess = false;
         if (document.getOwner().equals(user)) {
-            return document; // Owner always has access
+            hasAccess = true; // Owner always has access
+        } else {
+            // Check for a specific permission entry
+            // This is safe because the session is still open
+            hasAccess = document.getPermissions().stream()
+                    .anyMatch(permission -> permission.getUser().equals(user));
         }
 
-        // Check for a specific permission entry
-        boolean hasPermission = documentPermissionRepository.findByDocumentAndUser(document, user).isPresent();
-
-        if (!hasPermission) {
+        if (!hasAccess) {
             throw new AccessDeniedException("You do not have permission to view this document.");
         }
 
-        return document;
+        // --- THE FIX ---
+        // Map to DTO *inside* the @Transactional method
+        // This allows us to safely access 'document.getPermissions()'
+        return mapToDocumentResponse(document, true);
     }
 
     /**

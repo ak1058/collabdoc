@@ -55,11 +55,14 @@ public class DocumentController {
     @GetMapping("/{id}")
     public ResponseEntity<DocumentResponse> getDocumentById (@PathVariable Long id, Principal principal){
 
-        Document document = documentService.getDocumentById(id, principal.getName());
+        // The DocumentService.getDocumentById(id, username) in your Canvas
+        // now correctly returns the 'DocumentResponse' DTO, which
+        // includes the 'sharedWith' list.
+        DocumentResponse documentResponse = documentService.getDocumentById(id, principal.getName());
 
-        // Map to DTO, *including* content
-        return ResponseEntity.ok(mapToDocumentResponseWithContent(document));
+        return ResponseEntity.ok(documentResponse);
     }
+
 
     /**
      * DELETE /api/documents/{id} : Deletes a document.
