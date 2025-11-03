@@ -213,6 +213,30 @@ public class DocumentService {
 
     }
 
+    // --- NEW METHOD ---
+    /**
+     * Gets all documents that have been shared with the authenticated user.
+     * @param username The email/username of the user.
+     * @return A list of DocumentResponse DTOs.
+     */
+    @Transactional(readOnly = true)
+    public List<DocumentResponse> getDocumentsSharedWithUser(String username) {
+        User user = getUserByUsername(username);
+
+        // 1. Find all permission entries for this user
+        List<DocumentPermission> permissions = documentPermissionRepository
+                .findByUserOrderByDocumentUpdatedAtDesc(user);
+
+        // 2. Map the Document from each permission to a DocumentResponse
+        return permissions.stream()
+                .map(permission -> {
+                    // Get the document from the permission
+                    Document document = permission.getDocument();
+                    // Map it to a DTO (false = don't include content)
+                    return mapToDocumentResponse(document, false);
+                })
+                .collect(Collectors.toList());
+    }
 
     // --- Private Helper Methods ---
 

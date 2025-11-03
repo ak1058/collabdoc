@@ -105,6 +105,16 @@ public class DocumentController {
     }
 
     /**
+     * GET /api/documents/shared-with-me : Gets all documents shared with the authenticated user.
+     */
+    @GetMapping("/shared-with-me")
+    public ResponseEntity<List<DocumentResponse>> getSharedDocuments(Principal principal) {
+        String username = principal.getName();
+        List<DocumentResponse> documents = documentService.getDocumentsSharedWithUser(username);
+        return ResponseEntity.ok(documents);
+    }
+
+    /**
      * Helper to map a Document Entity to a DTO (for lists, no content).
      */
     private DocumentResponse mapToDocumentResponse(Document document) {
