@@ -2,14 +2,17 @@ package com.amit.collabdoc.document;
 
 import com.amit.collabdoc.dto.CreateDocumentRequest;
 import com.amit.collabdoc.dto.DocumentResponse;
+import com.amit.collabdoc.dto.ShareRequest;
 import com.amit.collabdoc.dto.UpdateDocumentRequest;
 import com.amit.collabdoc.model.Document;
+import com.amit.collabdoc.model.DocumentPermission;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -80,6 +83,28 @@ public class DocumentController {
     }
 
     /**
+     * POST /api/documents/{id}/share : Shares a document with another user.
+     * @param id The ID of the document to share.
+     * @param shareRequest The ShareRequest DTO (email, permission).
+     * @param principal The authenticated user (must be the owner).
+     * @return The new permission object.
+     */
+    @PostMapping("/{id}/share")
+    public ResponseEntity<?> shareDocument (@PathVariable Long id,
+                                            @RequestBody ShareRequest shareRequest,
+                                            Principal principal) {
+        String ownerUsername = principal.getName();
+        // We can create a DTO for this response, but for now we'll return a simple map
+        DocumentPermission permission = documentService.shareDocument(id, shareRequest, ownerUsername);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Document shared successfully with " + shareRequest.getEmail(),
+                "permissionId", permission.getId(),
+                "permissionLevel", permission.getPermission()
+        ));
+    }
+
+    /**
      * Helper to map a Document Entity to a DTO (for lists, no content).
      */
     private DocumentResponse mapToDocumentResponse(Document document) {
@@ -93,7 +118,7 @@ public class DocumentController {
     }
 
     /**
-     * NEW HELPER: Maps a Document Entity to a DTO, *including* the content.
+     *  Maps a Document Entity to a DTO, *including* the content.
      */
     private DocumentResponse mapToDocumentResponseWithContent(Document document) {
         DocumentResponse response = new DocumentResponse(

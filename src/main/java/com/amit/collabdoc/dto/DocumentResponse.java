@@ -1,6 +1,7 @@
 package com.amit.collabdoc.dto;
 
 import java.time.LocalDateTime; // CHANGED from Instant
+import java.util.List;
 
 /**
  * DTO for sending document data.
@@ -14,7 +15,10 @@ public class DocumentResponse {
     private String ownerUsername; // CHANGED from ownerId
     private LocalDateTime createdAt; // CHANGED from Instant
     private LocalDateTime updatedAt; // CHANGED from Instant
-    private String content; // <-- ADDED THIS FIELD
+    private String content; // This field is for the GET /api/documents/{id} endpoint
+
+    //  List of users this document is shared with
+    private List<ShareInfo>  sharedWith;
 
     // No-arg constructor
     public DocumentResponse() {
@@ -72,13 +76,21 @@ public class DocumentResponse {
         this.updatedAt = updatedAt;
     }
 
-    // --- GETTER AND SETTER FOR NEW FIELD ---
+
     public String getContent() {
         return content;
     }
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public List<ShareInfo> getSharedWith() {
+        return sharedWith;
+    }
+
+    public void setSharedWith(List<ShareInfo> sharedWith) {
+        this.sharedWith = sharedWith;
     }
 }
 

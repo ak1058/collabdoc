@@ -1,5 +1,6 @@
 package com.amit.collabdoc.collaboration;
 
+import com.amit.collabdoc.document.DocumentService; // NEW IMPORT
 import com.amit.collabdoc.dto.EditorChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,10 +22,14 @@ public class CollaborationController {
 
     private final CollaborationService collaborationService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final DocumentService documentService; // NEW: For permission checks
 
-    public CollaborationController(CollaborationService collaborationService, SimpMessagingTemplate messagingTemplate) {
+    public CollaborationController(CollaborationService collaborationService,
+                                   SimpMessagingTemplate messagingTemplate,
+                                   DocumentService documentService) { // UPDATED CONSTRUCTOR
         this.collaborationService = collaborationService;
         this.messagingTemplate = messagingTemplate;
+        this.documentService = documentService; // NEW
     }
 
     @MessageMapping("/document/{docId}/join")
@@ -53,7 +58,7 @@ public class CollaborationController {
 
     /**
      * Handles incoming edits from a user.
-     * UPDATED: No longer uses @SendTo. Broadcasts manually to add sender info.
+     * UPDATED: Now checks for EDITOR permission before applying changes.
      *
      * @param docId  The ID of the document being edited.
      * @param change The EditorChange DTO (containing delta and fullDelta)
@@ -64,11 +69,27 @@ public class CollaborationController {
     public void handleEdit(@DestinationVariable Long docId, @Payload EditorChange change, Principal principal) {
 
         if (principal == null) {
-            logger.warn("Unauthorized edit attempt on doc {}", docId);
+            logger.warn("Unauthorized edit attempt on doc {}: No principal.", docId);
             return;
         }
 
         String username = principal.getName();
+
+        // --- THIS IS THE SECURITY FIX ---
+        // Before we do anything, check if the user has permission to edit.
+        try {
+            if (!documentService.hasEditPermission(docId, username)) {
+                logger.warn("User {} (VIEWER) tried to edit doc {}. Access denied.", username, docId);
+                // We just stop. No save, no broadcast.
+                return;
+            }
+        } catch (Exception e) {
+            // This could be a ResourceNotFoundException or AccessDeniedException
+            logger.error("Error checking edit permission for user {} on doc {}: {}", username, docId, e.getMessage());
+            return;
+        }
+        // --------------------------------
+
         // logger.info("User {} sent change to document {}", username, docId);
 
         // 1. Save the FULL DELTA OBJECT to Redis and mark as "dirty"
